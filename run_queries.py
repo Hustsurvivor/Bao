@@ -6,11 +6,11 @@ from time import time, sleep
 import datetime
 import argparse
 import glob
-
+import config
 
 USE_BAO = True
-TIMEOUT_LIMIT = 3 * 60 * 1000
-NUM_EXECUTIONS = 3
+TIMEOUT_LIMIT = 2 * 60 * 1000
+NUM_EXECUTIONS = 1
 
 # bao_rewards是设置是否将此次查询加入experience
 # bao_select是设置是否使用bao模型选择的plan 
@@ -22,7 +22,7 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 def pg_connection_string(db_name):
-    return f"dbname={db_name} user=zpf password=zpf host=localhost"
+    return f"dbname={db_name} user={config.PG_USER} password={config.PG_PASSWARD} host={config.PG_HOST} port={config.PG_PORT}"
 
 def run_query(sql, bao_select=False, bao_reward=False, db_name='imdbload'):
     while True:
@@ -30,7 +30,7 @@ def run_query(sql, bao_select=False, bao_reward=False, db_name='imdbload'):
             conn = psycopg2.connect(pg_connection_string(db_name=db_name))
             cur = conn.cursor()
             # Hardcode bao_host to fixed IP given in docker-compose
-            # cur.execute("SET bao_host TO '10.5.0.6'")
+            cur.execute(f"SET bao_host TO {config.BAO_HOST}")
             cur.execute(f"SET enable_bao TO {bao_select or bao_reward}")
             cur.execute(f"SET enable_bao_selection TO {bao_select}")
             cur.execute(f"SET enable_bao_rewards TO {bao_reward}")
@@ -62,8 +62,8 @@ def run_query(sql, bao_select=False, bao_reward=False, db_name='imdbload'):
             conn.close()
 
             return {
-                'execution_time': 2 * TIMEOUT_LIMIT,
-                'planning_time': 2 * TIMEOUT_LIMIT
+                'execution_time': 1 * TIMEOUT_LIMIT,
+                'planning_time': 1 * TIMEOUT_LIMIT
             }
 
     return measurement
@@ -81,16 +81,24 @@ def write_to_file(file_path, output_string):
 
 
 def main(args):
-    # Look for .sql files
-    pattern = os.path.join(args.query_dir, '**/*.sql')
-    query_paths = sorted(glob.glob(pattern, recursive=True))
-    print(f"Found {len(query_paths)} queries in {args.query_dir} and its subdirectories.")
+    # old style 
+    # # Look for .sql files
+    # pattern = os.path.join(args.query_dir, '**/*.sql')
+    # query_paths = sorted(glob.glob(pattern, recursive=True))
+    # print(f"Found {len(query_paths)} queries in {args.query_dir} and its subdirectories.")
 
+    # queries = []
+    # for fp in query_paths:
+    #     with open(fp) as f:
+    #         query = f.read()
+    #     queries.append((fp, query))
+
+    # new style
     queries = []
-    for fp in query_paths:
-        with open(fp) as f:
-            query = f.read()
-        queries.append((fp, query))
+    with open(args.query_dir)as f:
+        for line in f.readlines():
+            queries.append(line.split('#####'))
+
     print("Using Bao:", USE_BAO)
 
     db_name = args.database_name
@@ -98,9 +106,9 @@ def main(args):
 
     random.seed(42)
 
-    queries_to_run = 500 if len(queries) < 500 else len(queries)
-    query_sequence = random.choices(queries, k=queries_to_run)
-    pg_chunks, *bao_chunks = list(chunks(query_sequence, 25))
+    # queries_to_run = 500 if len(queries) < 500 else len(queries)
+    # query_sequence = random.choices(queries, k=queries_to_run)
+    pg_chunks, *bao_chunks = list(chunks(queries, 400))
 
     print("Executing queries using PG optimizer for initial training")
 
@@ -115,6 +123,7 @@ def main(args):
             write_to_file(args.output_file, output_string)
         
         measurement = run_query(q, bao_reward=True, db_name=db_name)
+        
         output_string = f"x, {q_idx}, {NUM_EXECUTIONS-1}, {current_timestamp_str()}, {fp}, {measurement['planning_time']}, {measurement['execution_time']}, PG"
         write_to_file(args.output_file, output_string)
 
@@ -138,16 +147,26 @@ def main(args):
             output_string = f"{c_idx}, {q_idx}, {NUM_EXECUTIONS-1}, {current_timestamp_str()}, {fp}, {measurement['planning_time']}, {measurement['execution_time']}, Bao"
             write_to_file(args.output_file, output_string)
 
-
-# Example Call:
-#
-# python3 run_queries.py --query_dir queries/job__base_query_split_1/train --output_file train__bao__base_query_split_1.txt
-#
-if __name__ == '__main__':
+def define_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--database_name', type=str, default='imdb', help='Database name to query against')
     parser.add_argument('--query_dir', type=str, required=True, help='Directory which contains all the *training* queries')
     parser.add_argument('--output_file', type=str, required=True, help='File in which to store the results')
 
     args = parser.parse_args()
+
+def define_args_for_debug():
+    args = argparse.Namespace(
+            database_name="imdb",
+            query_dir="backup4bisplit/data/job-static/job-static.txt",
+            output_file="train__bao__job_static.txt",
+        )
+    return args
+
+# Example Call:
+#
+# python3 run_queries.py --query_dir queries/job__base_query_split_1/train --output_file train__bao__base_query_split_1.txt
+#
+if __name__ == '__main__':
+    args = define_args_for_debug()
     main(args)

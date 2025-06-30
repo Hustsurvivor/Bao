@@ -6,16 +6,16 @@ from time import time, sleep
 import datetime
 import argparse
 import glob
+import config 
 
-TIMEOUT_LIMIT = 3 * 60 * 1000
-NUM_EXECUTIONS = 3
-
+TIMEOUT_LIMIT = 5 * 60 * 1000
+NUM_EXECUTIONS = 1
 
 def current_timestamp_str():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
 def pg_connection_string(db_name):
-    return f"dbname={db_name} user=zpf password=zpf host=localhost"
+    return f"dbname={db_name} user={config.PG_USER} password={config.PG_PASSWARD} host={config.PG_HOST} port={config.PG_PORT}"
 
 def run_query(sql, bao_select=False, bao_reward=False, db_name='imdb', use_geqo=True, use_bao=True):
     measurements = []
@@ -23,7 +23,7 @@ def run_query(sql, bao_select=False, bao_reward=False, db_name='imdb', use_geqo=
         conn = psycopg2.connect(pg_connection_string(db_name=db_name))
         cur = conn.cursor()
         # Hardcode bao_host to fixed IP given in docker-compose
-        # cur.execute("SET bao_host TO '10.5.0.6'")
+        cur.execute(f"SET bao_host TO {config.BAO_HOST}")
         cur.execute(f"SET enable_bao TO {bao_select or bao_reward}")
         cur.execute(f"SET enable_bao_selection TO {bao_select}")
         cur.execute(f"SET enable_bao_rewards TO {bao_reward}")
@@ -103,9 +103,10 @@ def main(args):
 
 # Example Call:
 #
-# python3 run_test_queries.py --use_postgres --database_name imdbload --query_dir queries/join-order-benchmark --output_file test__postgres__job.txt
+# python3 run_test_queries.py --use_bao --database_name imdb --query_dir queries/join-order-benchmark --output_file test__postgres__job.txt
 #
-if __name__ == '__main__':
+
+def define_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_bao', action='store_true', help='Should Bao be used?')
     parser.add_argument('--use_postgres', action='store_true', help='Should Postgres be used?')
@@ -116,6 +117,20 @@ if __name__ == '__main__':
     parser.add_argument('--disable_geqo', action='store_false', dest='use_geqo', help='Should GEQO be disabled?')
 
     args = parser.parse_args()
+
+def define_args_for_debug():
+    args = argparse.Namespace(
+            database_name="tpch",
+            use_bao=True,
+            use_postgres=False,
+            use_geqo=True,
+            query_dir="/app/workload/join_order_exp/exp1/tpch/all_old/test",
+            output_file="test__bao__tpch.txt",
+        )
+    return args
+
+if __name__ == '__main__':
+    args = define_args_for_debug()
 
     if (not args.use_bao) and (not args.use_postgres):
         print(f"Need to either select Bao or Postgres to be used. (--use_bao or --use_postgres)")

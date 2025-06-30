@@ -130,7 +130,7 @@ class BaoJSONHandler(JSONTCPHandler):
 
 def start_server(listen_on, port):
     model = BaoModel()
-
+  
     if os.path.exists(DEFAULT_MODEL_PATH):
         print(f"Loading existing model from {DEFAULT_MODEL_PATH}")
         model.load_model(DEFAULT_MODEL_PATH)

@@ -1,2 +1,8 @@
 __pycache__
 logs/
+.vscode
+backup*
+hidiv_log
+.deps
+hidiv_model
+templateqo_model

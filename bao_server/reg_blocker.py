@@ -118,7 +118,7 @@ class ExperimentRunner:
             print("Running on backend PID", pid)
             c.execute("SET bao_include_json_in_explain TO on")
             # Hardcode bao_host to fixed IP given in docker-compose
-            # c.execute("SET bao_host TO '10.5.0.6'")
+            c.execute("SET bao_host TO 'lgn_baseline'")
             c.execute("SET enable_bao TO on")
             c.execute("SET enable_bao_selection TO off")
             c.execute("SET enable_bao_rewards TO on")

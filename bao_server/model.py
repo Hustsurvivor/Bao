@@ -87,7 +87,7 @@ class BaoRegression:
             self.__in_channels = joblib.load(f)
             
         self.__net = net.BaoNet(self.__in_channels)
-        self.__net.load_state_dict(torch.load(_nn_path(path)))
+        self.__net.load_state_dict(torch.load(_nn_path(path), map_location='cpu'))
         self.__net.eval()
         
         with open(_y_transform_path(path), "rb") as f:
@@ -179,6 +179,7 @@ class BaoRegression:
             self.__log("Stopped training after max epochs")
 
     def predict(self, X):
+        print('predict')
         if not isinstance(X, list):
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
