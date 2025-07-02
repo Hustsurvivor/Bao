@@ -8,7 +8,7 @@ import argparse
 import glob
 import config 
 
-TIMEOUT_LIMIT = 5 * 60 * 1000
+TIMEOUT_LIMIT = 2 * 60 * 1000
 NUM_EXECUTIONS = 1
 
 def current_timestamp_str():

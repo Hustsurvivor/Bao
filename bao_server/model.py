@@ -52,7 +52,7 @@ def collate(x):
         trees.append(tree)
         targets.append(target)
 
-    targets = torch.tensor(targets)
+    targets = torch.tensor(np.array(targets))
     return trees, targets
 
 class BaoRegression:

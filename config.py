@@ -1,6 +1,6 @@
-BAO_HOST="'10.6.0.4'"
+BAO_HOST="'10.8.0.4'"
 
 PG_USER='postgres'
 PG_PASSWARD='postgres'
-PG_HOST='lgn_pg_12_5'
+PG_HOST='10.8.0.5'
 PG_PORT='5432'

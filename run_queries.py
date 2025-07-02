@@ -28,6 +28,7 @@ def run_query(sql, bao_select=False, bao_reward=False, db_name='imdbload'):
     while True:
         try:
             conn = psycopg2.connect(pg_connection_string(db_name=db_name))
+            conn.set_client_encoding('UTF8')
             cur = conn.cursor()
             # Hardcode bao_host to fixed IP given in docker-compose
             cur.execute(f"SET bao_host TO {config.BAO_HOST}")
@@ -95,7 +96,7 @@ def main(args):
 
     # new style
     queries = []
-    with open(args.query_dir)as f:
+    with open(args.query_dir, encoding='utf-8')as f:
         for line in f.readlines():
             queries.append(line.split('#####'))
 
@@ -155,10 +156,12 @@ def define_args():
 
     args = parser.parse_args()
 
+    return args
+
 def define_args_for_debug():
     args = argparse.Namespace(
             database_name="imdb",
-            query_dir="backup4bisplit/data/job-static/job-static.txt",
+            query_dir="/app/source/BiSplit/data/job-static/job-static.txt",
             output_file="train__bao__job_static.txt",
         )
     return args
@@ -168,5 +171,5 @@ def define_args_for_debug():
 # python3 run_queries.py --query_dir queries/job__base_query_split_1/train --output_file train__bao__base_query_split_1.txt
 #
 if __name__ == '__main__':
-    args = define_args_for_debug()
+    args = define_args()
     main(args)
